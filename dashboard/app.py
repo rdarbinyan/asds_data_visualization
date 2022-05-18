@@ -12,7 +12,10 @@ app.title = "Summer Olympics Dashboard"
 plots = Plots()
 
 app.layout = html.Div(children=[
-    dcc.Graph(figure=plots.interactive_rating_map),
+    html.Div([
+        html.Div(dcc.Graph(figure=plots.top_athletes_section), className="col-6"),
+        html.Div(dcc.Graph(figure=plots.interactive_rating_map), className="col-6"),
+    ], className="row"),
     html.Div([
         html.Div(dcc.Graph(figure=plots.medals_tally_between_genders), className="col-6"),
         html.Div(dcc.Graph(figure=plots.gender_ratio_in_disciplines), className="col-6")

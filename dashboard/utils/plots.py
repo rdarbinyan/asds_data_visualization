@@ -2,11 +2,15 @@ import warnings
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import skimage.color
+
+from plotly.subplots import make_subplots
+from skimage import io
 
 
 class Plots:
     def __init__(self):
-        self.regions = pd.read_csv('../data/history_noc_regions.csv')
+        # self.regions = pd.read_csv('../data/history_noc_regions.csv')
 
         history_athlete_events = pd.read_csv('../data/history_athlete_events.csv')
 
@@ -18,8 +22,8 @@ class Plots:
 
             self.gender = pd.read_excel('../data/EntriesGender.xlsx')
             self.athletes = pd.read_excel('../data/Athletes.xlsx')
-            self.teams = pd.read_excel('../data/Teams.xlsx')
-            self.coaches = pd.read_excel('../data/Coaches.xlsx')
+            # self.teams = pd.read_excel('../data/Teams.xlsx')
+            # self.coaches = pd.read_excel('../data/Coaches.xlsx')
             self.medals = pd.read_excel('../data/Medals.xlsx')
 
     @property
@@ -46,7 +50,89 @@ class Plots:
                              labels={"size": "Total"},
                              projection="natural earth")
 
-        fig.update_layout(title=f"<b><span style='font-size: 30px;'>{'Olympic teams rating'}</span></b>", title_x=0.5)
+        fig.update_layout(title=f"<b><span style='font-size: 30px;'>{'Olympic teams rating (2020)'}</span></b>",
+                          title_x=0.5)
+
+        return fig
+
+    @property
+    def top_athletes_section(self):
+        history_athlete_events = self.history_athlete_events
+
+        year_grouped_data = history_athlete_events.groupby("Year")
+
+        top_athletes = {
+            "year": [],
+            "athlete": [],
+            "number_of_medals": [],
+            "number_of_golds": [],
+            "number_of_silvers": [],
+            "number_of_bronzes": []
+        }
+
+        for year, year_data in year_grouped_data:
+            athlete_idx = year_data[~year_data["Medal"].isna()]['Name'].value_counts().idxmax()
+            athlete_name = athlete_idx
+            athlete_number_of_medals = len(year_data[year_data['Name'] == athlete_name])
+
+            top_athletes["year"].append(year)
+            top_athletes["athlete"].append(athlete_name)
+            top_athletes["number_of_medals"].append(athlete_number_of_medals)
+            top_athletes["number_of_golds"].append(
+                len(year_data[(year_data['Name'] == athlete_name) & (year_data["Medal"] == "Gold")]))
+            top_athletes["number_of_silvers"].append(
+                len(year_data[(year_data['Name'] == athlete_name) & (year_data["Medal"] == "Silver")]))
+            top_athletes["number_of_bronzes"].append(
+                len(year_data[(year_data['Name'] == athlete_name) & (year_data["Medal"] == "Bronze")]))
+
+        top_athletes = pd.DataFrame(top_athletes)
+
+        fig = make_subplots(rows=1, cols=2, specs=[[{"type": "bar"}, {"type": "image"}]],)
+
+        titles = []
+        for _, row in top_athletes.iterrows():
+            x = ["number_of_golds", "number_of_silvers", "number_of_bronzes"]
+            y = row[x]
+
+            fig.add_trace(
+                go.Bar(visible=False, x=x, y=y,
+                       marker_color=['#C9B037', '#B4B4B4', '#AD8A56']),
+                row=1, col=1
+            )
+
+            img = io.imread(f"../data/top_performers/{row['year']}.jpg")
+            if len(img.shape) == 2:
+                img = skimage.color.gray2rgb(img)
+
+            fig.add_trace(go.Image(visible=False, z=img), row=1, col=2)
+
+            titles.append(f"<b><span style='font-size: 30px;'>{'Top performers in each Olympics'}</span></b> <br> {row['athlete']} ({row['year']}) ")
+
+        fig.data[0].visible = True
+        fig.data[1].visible = True
+
+        steps = []
+        for i, row in top_athletes.iterrows():
+            row = top_athletes.iloc[i]
+            step = dict(
+                method="update",
+                args=[{"visible": [False] * len(fig.data)},
+                      {"title": titles[i]}]  # layout attribute
+            )
+
+            step["args"][0]["visible"][i * 2] = True
+            step["args"][0]["visible"][i * 2 + 1] = True
+            step["label"] = f'{row["year"]}'
+            steps.append(step)
+
+        sliders = [dict(
+            active=0,
+            steps=steps,
+            currentvalue={"prefix": "Year: "}
+        )]
+
+        fig.update_layout(title=titles[0],
+                          title_x=0.5, showlegend=False, sliders=sliders, yaxis={'tickformat': ',d', 'rangemode':'tozero'})
 
         return fig
 
@@ -102,7 +188,8 @@ class Plots:
     def top_disciplines_by_representative_count(self):
         athletes = self.athletes
 
-        pivot_athletes_discipline = pd.pivot_table(athletes, index=["Discipline"], values=["Name"], aggfunc={"Name": "count"})
+        pivot_athletes_discipline = pd.pivot_table(athletes, index=["Discipline"], values=["Name"],
+                                                   aggfunc={"Name": "count"})
         pivot_athletes_discipline = pivot_athletes_discipline.sort_values(by=["Name"], ascending=False)
 
         fig = px.bar(pivot_athletes_discipline[:20], y="Name", labels={"Name": "Count"})
@@ -117,7 +204,7 @@ class Plots:
     def top_countries_by_total_medals_count(self):
         medals = self.medals
 
-        fig = px.bar(medals.sort_values(by="Total", ascending=False)[:20], x="Team/NOC", y="Total",)
+        fig = px.bar(medals.sort_values(by="Total", ascending=False)[:20], x="Team/NOC", y="Total", )
 
         fig.update_layout(
             title=f"<b><span style='font-size: 20px;'>{'Top 20 countries by total medal count (2020)'}</span></b>",
@@ -168,4 +255,3 @@ class Plots:
             title_x=0.5)
 
         return fig
-

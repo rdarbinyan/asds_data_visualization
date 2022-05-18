@@ -15,7 +15,7 @@ build:
 	mv 127.0.0.1:8050/_dash-layout 127.0.0.1:8050/_dash-layout.json
 	mv 127.0.0.1:8050/_dash-dependencies 127.0.0.1:8050/_dash-dependencies.json
 	mkdir 127.0.0.1:8050/data
-	cp ../data/* 127.0.0.1:8050/data/
+	cp -r ../data/* 127.0.0.1:8050/data/
 	cp 127.0.0.1:8050/index.html 127.0.0.1:8050/robots.txt
 	cp _static/async* 127.0.0.1:8050/_dash-component-suites/dash/dcc/
 	cp _static/favicon.ico 127.0.0.1:8050/favicon.ico
