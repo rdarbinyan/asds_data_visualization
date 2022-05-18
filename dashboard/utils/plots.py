@@ -86,6 +86,8 @@ class Plots:
                 len(year_data[(year_data['Name'] == athlete_name) & (year_data["Medal"] == "Bronze")]))
 
         top_athletes = pd.DataFrame(top_athletes)
+        top_athletes = top_athletes.iloc[-15:]
+        top_athletes.reset_index()
 
         fig = make_subplots(rows=1, cols=2, specs=[[{"type": "bar"}, {"type": "image"}]],)
 
@@ -106,18 +108,18 @@ class Plots:
 
             fig.add_trace(go.Image(visible=False, z=img), row=1, col=2)
 
-            titles.append(f"<b><span style='font-size: 30px;'>{'Top performers in each Olympics'}</span></b> <br> {row['athlete']} ({row['year']}) ")
-
         fig.data[0].visible = True
         fig.data[1].visible = True
 
         steps = []
-        for i, row in top_athletes.iterrows():
+        for i in range(len(top_athletes)):
             row = top_athletes.iloc[i]
+            title = f"<b><span style='font-size: 30px;'>{'Top performers in each Olympics'}</span></b> <br> {row['athlete']} ({row['year']})"
+            titles.append(title)
             step = dict(
                 method="update",
                 args=[{"visible": [False] * len(fig.data)},
-                      {"title": titles[i]}]  # layout attribute
+                      {"title": title}]  # layout attribute
             )
 
             step["args"][0]["visible"][i * 2] = True
